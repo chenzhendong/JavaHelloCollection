@@ -5,9 +5,8 @@
 <web-app>
 	<context-param>
 		<param-name>resteasy.resources</param-name>
-		<param-value>com.mmm.his.nlpengine.resteasy.ResteasyService</param-value>
+		<param-value>com.popyoyo.hello.resteasy.ResteasyService</param-value>
 	</context-param>
-
 
 	<context-param>
 		<param-name>resteasy.async.job.service.enabled</param-name>
@@ -43,7 +42,7 @@
 	<servlet>
 		<servlet-name>vertx</servlet-name>
 		<servlet-class>
-			com.mmm.his.nlpengine.resteasy.VertxMain
+			com.popyoyo.hello.resteasy.VertxMain
 		</servlet-class>
 		<init-param>
 			<param-name>testName</param-name>

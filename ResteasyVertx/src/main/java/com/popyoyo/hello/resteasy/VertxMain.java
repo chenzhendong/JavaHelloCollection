@@ -1,4 +1,4 @@
-package com.mmm.his.nlpengine.resteasy;
+package com.popyoyo.hello.resteasy;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;

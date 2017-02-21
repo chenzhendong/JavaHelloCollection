@@ -1,4 +1,4 @@
-package com.mmm.his.nlpengine.resteasy;
+package com.popyoyo.hello.resteasy;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
