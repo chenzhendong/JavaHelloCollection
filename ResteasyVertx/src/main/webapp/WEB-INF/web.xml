@@ -8,31 +8,6 @@
 		<param-value>com.popyoyo.hello.resteasy.ResteasyService</param-value>
 	</context-param>
 
-	<context-param>
-		<param-name>resteasy.async.job.service.enabled</param-name>
-		<param-value>true</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>resteasy.async.job.service.max.job.results</param-name>
-		<param-value>100</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>resteasy.async.job.service.max.wait</param-name>
-		<param-value>300000</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>resteasy.async.job.service.thread.pool.size</param-name>
-		<param-value>100</param-value>
-	</context-param>
-
-	<context-param>
-		<param-name>resteasy.async.job.service.base.path</param-name>
-		<param-value>/asyncjobs</param-value>
-	</context-param>
-
 	<listener>
 		<listener-class>
 			org.jboss.resteasy.plugins.server.servlet.ResteasyBootstrap

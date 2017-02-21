@@ -12,7 +12,7 @@ public class MessageWorker extends AbstractVerticle {
         EventBus bus = vertx.eventBus();
         bus.consumer("vertx-worker", msg->{
             try {
-                //Thread.currentThread().sleep(3000);
+                Thread.currentThread().sleep(4000);
                 msg.reply("Hello, " + msg.body() + "!!!");
             } catch (Exception ex) {
                 System.out.println("Error happens ...");
