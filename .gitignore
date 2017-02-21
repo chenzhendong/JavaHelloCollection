@@ -1,9 +1,5 @@
 target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
+.idea/
+node_modules/
+*.iml
 dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
