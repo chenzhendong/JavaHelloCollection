@@ -1,6 +1,5 @@
 package com.popyoyo.hello.resteasy;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 
 import javax.ws.rs.GET;
@@ -16,19 +15,15 @@ import javax.ws.rs.core.Response;
  * Created by Zhendong Chen on 2/14/17.
  */
 
-@Path("/")
-public class ResteasyService extends AbstractVerticle{
-
-    public ResteasyService(){
-        VertxMain.vertx.deployVerticle(this);
-    }
+@Path("/hello")
+public class ResteasyService {
 
     @GET
     @Path("{name}")
     @Produces("text/plain")
     public void sayHello(@Suspended final AsyncResponse response, @PathParam("name")String name) throws Exception
     {
-        EventBus bus = vertx.eventBus();
+        EventBus bus = VertxMain.vertx.eventBus();
 
         System.out.println("Send to another port ...");
 

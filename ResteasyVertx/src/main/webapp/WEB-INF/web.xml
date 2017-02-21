@@ -61,7 +61,7 @@
 
 	<servlet-mapping>
 		<servlet-name>Resteasy</servlet-name>
-		<url-pattern>/*</url-pattern>
+		<url-pattern>/hello/*</url-pattern>
 	</servlet-mapping>
 
 </web-app>
