@@ -7,8 +7,11 @@
 
     <groupId>com.popyoyo.hello</groupId>
     <artifactId>resteasy-vertx</artifactId>
-    <packaging>war</packaging>
+    <packaging>pom</packaging>
     <version>1.0.0-SNAPTSHOT</version>
+    <modules>
+        <module>../AwsApi</module>
+    </modules>
 
     <dependencies>
         <dependency>
