@@ -1,11 +1,39 @@
 package com.popyoyo.hello.awsapi;
 
-import javax.net.ssl.HttpsURLConnection;
+
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
+import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLRequest;
+import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLResult;
+import com.amazonaws.services.securitytoken.model.Credentials;
+import org.apache.http.HttpEntity;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
+import java.io.StringReader;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -14,101 +42,152 @@ import java.util.List;
 
 public class STSAuthClient {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         STSAuthClient client = new STSAuthClient();
         client.run();
     }
 
-
-    private String readAll(URLConnection conn) throws Exception{
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        String inputLine;
-        StringBuffer response = new StringBuffer();
-
-        while ((inputLine = in.readLine()) != null) {
-            response.append(inputLine);
+    private String getAssertion(String content) throws Exception {
+        Document doc = Jsoup.parse(content);
+        for (Element input : doc.select("input")) {
+            if ("SAMLResponse".equals(input.attr("name"))) {
+                return input.attr("value");
+            }
         }
-        in.close();
-
-        //print result
-        System.out.println(response.toString());
-
-        return response.toString();
+        throw new Exception("Cannot find SAML Token from Response html.");
     }
 
-    // Start to run the server
-    public void run() {
-        try {
-            // Create socket factory
-            URL awsUrl = new URL("https://fstest.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices");
-            HttpsURLConnection awsConn = (HttpsURLConnection) awsUrl.openConnection();
+    private String getSaml(String assertion) throws Exception {
+        return new String(Base64.getDecoder().decode(assertion), "utf-8");
+    }
 
-            awsConn.setReadTimeout(5000);
-            awsConn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
-            awsConn.addRequestProperty("User-Agent", "Mozilla");
+    private UrlEncodedFormEntity createPostData(String contnet) throws Exception {
+        Document doc = Jsoup.parse(contnet);
+        Element form = doc.select("form").first();
+        if (form != null) {
+            Elements inputs = form.select("input");
+            List<NameValuePair> paras = new ArrayList<>();
 
-            // temporary to build request cookie header
-            StringBuilder sb = new StringBuilder();
+            for (Element input : inputs) {
+                String key = input.attr("name");
+                String value = input.attr("value");
+                if (key.contains("user")) {
+                    System.out.print("Enter User Name:");
+                    value = new BufferedReader(new InputStreamReader(System.in)).readLine();
 
-            // find the cookies in the response header from the first request
-            List<String> cookies = awsConn.getHeaderFields().get("Set-Cookie");
-            if (cookies != null) {
-                for (String cookie : cookies) {
-                    if (sb.length() > 0) {
-                        sb.append("; ");
-                    }
-
-                    // only want the first part of the cookie header that has the value
-                    String value = cookie.split(";")[0];
-                    sb.append(value);
                 }
+                if (key.contains("pass")) {
+                    System.out.print("Enter Password:");
+                    value = new BufferedReader(new InputStreamReader(System.in)).readLine();
+                }
+                paras.add(new BasicNameValuePair(key, value));
             }
-            // build request cookie header to send on all subsequent requests
-            String cookieHeader = sb.toString();
-            System.out.println(cookieHeader);
 
-            System.out.println(awsConn.getResponseCode());
-            System.out.println(awsConn.getResponseMessage());
+            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paras);
+            return entity;
+        } else {
+            throw new Exception("Cannot find login form, something wrong on login page.");
+        }
+    }
 
-            // start post username / password
+    private UrlEncodedFormEntity createPostMfaCode(String content, String msg) throws Exception {
+        Document doc = Jsoup.parse(content);
+        Element form = doc.select("form").first();
+        if (form != null) {
+            Elements inputs = form.select("input");
+            List<NameValuePair> paras = new ArrayList<>();
 
-            URL ssoUrl = new URL("https://enltest.3m.com/enl/login_servlet");
-            HttpsURLConnection ssoConn = (HttpsURLConnection)ssoUrl.openConnection();
+            for (Element input : inputs) {
+                String key = input.attr("name");
+                String value = input.attr("value");
+                if (key.contains("pf.challengeRespons")) {
+                    value = msg;
+                }
+                paras.add(new BasicNameValuePair(key, value));
+            }
 
-            ssoConn.setRequestMethod("POST");
-            ssoConn.setRequestProperty("User-Agent", "Mozilla/5.0");
-            ssoConn.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            ssoConn.setRequestProperty("Cookie", cookieHeader);
+            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paras);
+            return entity;
+        } else {
+            throw new Exception("Cannot find text message input box, must be something wrong on prev steps.");
+        }
 
-            String urlParameters = "{'js_valid': 'false', 'enlcheck': 'y', 'ck_required': 'n', 'country': 'US', 'language': 'en', 'Destination': 'HTTPS://extraftest.3m.com/fstest/enl/login-redirect-page-XSSO.html?resumePath=/idp/resumeSAML20/idp/startSSO.ping', 'REQUEST_URL': '/enl/enl_display_servlet', 'userName': 'a4d98zz', 'passwd': '8Bear@Winter', 'login': 'Login', 'Register': 'Register'}";
-            ssoConn.setRequestProperty("CONTENT_LENGTH", Integer.toString(urlParameters.length()));
-            // Send post request
-            ssoConn.setDoOutput(true);
-            DataOutputStream wr = new DataOutputStream(ssoConn.getOutputStream());
-            wr.writeBytes(urlParameters);
-            wr.flush();
-            wr.close();
-            readAll(ssoConn);
+    }
 
-            urlParameters = "{'pf.challengeResponse': '999999'}";
+    public void run() {
+        BasicCookieStore cookieStore = new BasicCookieStore();
+        CloseableHttpClient httpclient = HttpClients.custom()
+                .setDefaultCookieStore(cookieStore)
+                .build();
 
-            System.out.print("Enter text passcode:");
-            String input = new BufferedReader(new InputStreamReader(System.in)).readLine();
-            urlParameters.replace("999999", input);
+        try {
+            HttpGet httpget = new HttpGet("https://fstest.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices");
+            CloseableHttpResponse res1 = httpclient.execute(httpget);
 
-            // Send post request
-            ssoConn.setDoOutput(true);
-            wr = new DataOutputStream(ssoConn.getOutputStream());
-            wr.writeBytes(urlParameters);
-            wr.flush();
-            wr.close();
-            readAll(ssoConn);
+            HttpEntity entity = res1.getEntity();
+            UrlEncodedFormEntity postData = createPostData(EntityUtils.toString(entity));
 
+            EntityUtils.consume(entity);
 
+            HttpUriRequest req2 = RequestBuilder.post()
+                    .setUri(new URI("https://enltest.3m.com/enl/login_servlet"))
+                    .setEntity(postData)
+                    .build();
+            //CloseableHttpResponse res2 = httpclient.execute(req2);
+
+            HttpUriRequest req3 = RequestBuilder.post()
+                    .setUri(new URI("https://fstest.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
+                    .setEntity(postData)
+                    .build();
+
+            CloseableHttpResponse res3 = httpclient.execute(req3);
+
+            String res3String = EntityUtils.toString(res3.getEntity());
+
+            while (res3String.contains("pf.challengeRespons")) {
+                System.out.print("Enter text passcode:");
+                String text = new BufferedReader(new InputStreamReader(System.in)).readLine();
+                req3 = RequestBuilder.post()
+                        .setUri(new URI("https://fstest.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
+                        .setEntity(createPostMfaCode(res3String, text))
+                        .build();
+                res3 = httpclient.execute(req3);
+                res3String = EntityUtils.toString(res3.getEntity());
+            }
+            String assertion = getAssertion(res3String);
+            String saml = getSaml(assertion);
+
+            DocumentBuilderFactory factory =
+                    DocumentBuilderFactory.newInstance();
+            org.w3c.dom.Document dom = factory.newDocumentBuilder().parse(new InputSource(new StringReader(saml)));
+            XPath xPath = XPathFactory.newInstance().newXPath();
+            NodeList nl = (NodeList) xPath.compile("//Attribute[@Name='https://aws.amazon.com/SAML/Attributes/Role']/AttributeValue")
+                    .evaluate(dom, XPathConstants.NODESET);
+            String[] roles = nl.item(0).getTextContent().split(",");
+            String role_arn = roles[0];
+            String principal_arn = roles[1];
+
+            AWSSecurityTokenServiceClient client = new AWSSecurityTokenServiceClient();
+            AssumeRoleWithSAMLRequest samlRequest = new AssumeRoleWithSAMLRequest();
+            samlRequest.setRoleArn(role_arn);
+            samlRequest.setPrincipalArn(principal_arn);
+            samlRequest.setSAMLAssertion(assertion);
+            AssumeRoleWithSAMLResult tokenResult = client.assumeRoleWithSAML(samlRequest);
+            Credentials credentials = tokenResult.getCredentials();
+            String accessId = credentials.getAccessKeyId();
+            String accessKey = credentials.getSecretAccessKey();
+            String sessionToken = credentials.getSessionToken();
+
+            System.out.println(accessId);
+            System.out.println(accessKey);
+            System.out.println(sessionToken);
+
+            httpclient.close();
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
+
+
 }
 
