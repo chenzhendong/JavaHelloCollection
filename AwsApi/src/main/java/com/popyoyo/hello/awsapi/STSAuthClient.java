@@ -78,7 +78,11 @@ public class STSAuthClient {
                 }
                 if (key.contains("pass")) {
                     System.out.print("Enter Password:");
-                    value = new BufferedReader(new InputStreamReader(System.in)).readLine();
+                    if(System.console() != null) {
+                        value = new String(System.console().readPassword());
+                    } else {
+                        value = new BufferedReader(new InputStreamReader(System.in)).readLine();
+                    }
                 }
                 paras.add(new BasicNameValuePair(key, value));
             }
@@ -133,7 +137,7 @@ public class STSAuthClient {
                     .setUri(new URI("https://enltest.3m.com/enl/login_servlet"))
                     .setEntity(postData)
                     .build();
-            //CloseableHttpResponse res2 = httpclient.execute(req2);
+            CloseableHttpResponse res2 = httpclient.execute(req2);
 
             HttpUriRequest req3 = RequestBuilder.post()
                     .setUri(new URI("https://fstest.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
@@ -144,6 +148,7 @@ public class STSAuthClient {
 
             String res3String = EntityUtils.toString(res3.getEntity());
 
+            //System.out.println(res3String);
             while (res3String.contains("pf.challengeRespons")) {
                 System.out.print("Enter text passcode:");
                 String text = new BufferedReader(new InputStreamReader(System.in)).readLine();
@@ -154,6 +159,7 @@ public class STSAuthClient {
                 res3 = httpclient.execute(req3);
                 res3String = EntityUtils.toString(res3.getEntity());
             }
+            //System.out.println(res3String);
             String assertion = getAssertion(res3String);
             String saml = getSaml(assertion);
 
@@ -178,9 +184,10 @@ public class STSAuthClient {
             String accessKey = credentials.getSecretAccessKey();
             String sessionToken = credentials.getSessionToken();
 
-            System.out.println(accessId);
-            System.out.println(accessKey);
-            System.out.println(sessionToken);
+            System.out.println();
+            System.out.println("AccessID: " + accessId);
+            System.out.println("AccessKey: " + accessKey);
+            System.out.println("Token: " + sessionToken);
 
             httpclient.close();
         } catch (Exception ex) {
