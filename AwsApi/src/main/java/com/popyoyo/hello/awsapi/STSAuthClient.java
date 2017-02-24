@@ -1,7 +1,6 @@
 package com.popyoyo.hello.awsapi;
 
-
-
+import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLResult;
@@ -30,6 +29,9 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.URI;
@@ -55,7 +57,9 @@ public class STSAuthClient {
                 return input.attr("value");
             }
         }
-        throw new Exception("Cannot find SAML Token from Response html.");
+        System.out.println("Cannot find SAML Token from Response html, check username/ password and try again.");
+        System.exit(-1);
+        return null;
     }
 
     private String getSaml(String assertion) throws Exception {
@@ -186,7 +190,8 @@ public class STSAuthClient {
             String role_arn = roles[0];
             String principal_arn = roles[1];
 
-            AWSSecurityTokenServiceClient client = new AWSSecurityTokenServiceClient();
+            //writeDefaultCredentialFile();
+            AWSSecurityTokenServiceClient client = new AWSSecurityTokenServiceClient(new AnonymousAWSCredentials());
             AssumeRoleWithSAMLRequest samlRequest = new AssumeRoleWithSAMLRequest();
             samlRequest.setRoleArn(role_arn);
             samlRequest.setPrincipalArn(principal_arn);
@@ -198,9 +203,11 @@ public class STSAuthClient {
             String sessionToken = credentials.getSessionToken();
 
             System.out.println();
-            System.out.println("AccessID: " + accessId);
-            System.out.println("AccessKey: " + accessKey);
-            System.out.println("Token: " + sessionToken);
+            System.out.println("aws_access_key_id = " + accessId);
+            System.out.println("aws_secret_access_key = " + accessKey);
+            System.out.println("aws_session_token = " + sessionToken);
+
+            writeToCredentialFile(accessId, accessKey, sessionToken);
 
             httpclient.close();
         } catch (Exception ex) {
@@ -208,5 +215,40 @@ public class STSAuthClient {
         }
     }
 
+    private void writeToCredentialFile(String accessId, String accessKey, String sessionToken) throws Exception{
+        File cfile = new File(System.getProperty("user.home")+"/.aws/credentials");
+        /*boolean inSection = false;
+        StringBuffer sb = new StringBuffer();
+        if(cfile.exists()){
+            BufferedReader reader = new BufferedReader(new FileReader(cfile));
+            while(true){
+                String line = reader.readLine();
+                if(line == null){
+                    break;
+                }
+                if(line.startsWith("[builder]")){
+                    inSection = true;
+                }
 
+                if(inSection){
+                    if(line.startsWith("[")){
+                        inSection = false;
+                    } else {
+                        continue;
+                    }
+                }
+                sb.append(line+"\n");
+            }
+        }*/
+        BufferedWriter writer = new BufferedWriter(new FileWriter(cfile));
+        //writer.write(sb.toString());
+        writer.write("[default]\n");
+        writer.write("output = json\n");
+        writer.write("region = us-east-1\n");
+        writer.write("aws_access_key_id = " + accessId + "\n");
+        writer.write("aws_secret_access_key = " + accessKey + "\n");
+        writer.write("aws_session_token = " + sessionToken + "\n");
+        writer.close();
+    }
 }
+
