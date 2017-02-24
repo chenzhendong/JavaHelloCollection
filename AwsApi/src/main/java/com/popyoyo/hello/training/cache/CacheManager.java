@@ -9,7 +9,7 @@ import java.net.InetSocketAddress;
 public class CacheManager {
 
     // STUDENT TODO: Set the endpoint for the ElastiCache node cluster.
-    public static final String CLUSTER_CONFIG_ENDPOINT = "qls-ab-12cdefghi.jkl3mn.cfg.usw2.cache.amazonaws.com";
+    public static final String CLUSTER_CONFIG_ENDPOINT = "qls-el-4qdctj2namoj.neb8b2.0001.usw2.cache.amazonaws.com";
 
     // STUDENT TODO: Check that the CLUSTER_CONFIG_ENDPOINT_PORT constant is set to 11211.
     public static final int CLUSTER_CONFIG_ENDPOINT_PORT = 11211;

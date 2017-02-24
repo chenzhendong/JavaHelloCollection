@@ -1,6 +1,7 @@
 package com.popyoyo.hello.awsapi;
 
 
+
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceClient;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLRequest;
 import com.amazonaws.services.securitytoken.model.AssumeRoleWithSAMLResult;
@@ -61,7 +62,7 @@ public class STSAuthClient {
         return new String(Base64.getDecoder().decode(assertion), "utf-8");
     }
 
-    private UrlEncodedFormEntity createPostData(String contnet) throws Exception {
+    private UrlEncodedFormEntity createPostData(String contnet)  throws Exception {
         Document doc = Jsoup.parse(contnet);
         Element form = doc.select("form").first();
         if (form != null) {
@@ -90,7 +91,9 @@ public class STSAuthClient {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paras);
             return entity;
         } else {
-            throw new Exception("Cannot find login form, something wrong on login page.");
+            System.out.println("Cannot find login form, something wrong on login page.  Try use your browser visit https://fstest.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices see if it down.");
+            System.exit(-1);
+            return null;
         }
     }
 
@@ -113,9 +116,10 @@ public class STSAuthClient {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paras);
             return entity;
         } else {
-            throw new Exception("Cannot find text message input box, must be something wrong on prev steps.");
+            System.out.println("Cannot find text message input box, must be something wrong on prev steps, try to use your browser login to AWS Console see if it is website error.");
+            System.exit(-1);
+            return null;
         }
-
     }
 
     public void run() {
@@ -146,6 +150,10 @@ public class STSAuthClient {
 
             CloseableHttpResponse res3 = httpclient.execute(req3);
 
+            if(res3.getStatusLine().getStatusCode() > 300){
+                System.out.println("Wrong Username / Password, existing ...");
+                System.exit(-1);
+            }
             String res3String = EntityUtils.toString(res3.getEntity());
 
             //System.out.println(res3String);
@@ -157,9 +165,14 @@ public class STSAuthClient {
                         .setEntity(createPostMfaCode(res3String, text))
                         .build();
                 res3 = httpclient.execute(req3);
+                if(res3.getStatusLine().getStatusCode() > 300){
+                    System.out.println("Wrong Text Message Code, existing ...");
+                    System.exit(-1);
+                }
                 res3String = EntityUtils.toString(res3.getEntity());
             }
             //System.out.println(res3String);
+
             String assertion = getAssertion(res3String);
             String saml = getSaml(assertion);
 
@@ -197,4 +210,3 @@ public class STSAuthClient {
 
 
 }
-
