@@ -8,13 +8,15 @@ import io.vertx.core.json.JsonObject;
  * Created by Zhendong Chen on 2/14/17.
  */
 public class MessageWorker extends AbstractVerticle {
+    private int count;
 
     public void start() throws Exception{
         EventBus bus = vertx.eventBus();
         bus.consumer("vertx-worker", msg->{
             try {
-                Thread.currentThread().sleep(5000);
+                Thread.currentThread().sleep(10000);
                 JsonObject o = (JsonObject)msg.body();
+                o.put("id", ++count);
                 o.put("result", "Hello " + o.getString("name") + "!!!");
                 msg.reply(o);
             } catch (Exception ex) {

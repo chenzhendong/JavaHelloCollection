@@ -24,6 +24,7 @@ public class ResteasyService {
 
     Logger logger = LoggerFactory.getLogger(ResteasyService.class);
     final static Map<Integer, JsonObject> resultMap = new HashMap<>();
+    int count;
 
     @GET
     @Path("{name}")
@@ -34,7 +35,7 @@ public class ResteasyService {
 
         logger.info("Send to another port ...");
 
-        JsonObject oname = new JsonObject().put("name", name).put("id", 1);
+        JsonObject oname = new JsonObject().put("name", name).put("id", ++count);
 
         bus.send("vertx-worker", oname, res -> {
             if (res.succeeded()) {
@@ -44,7 +45,7 @@ public class ResteasyService {
                 resultMap.put(oresult.getInteger("id"), oresult);
                 //response.resume(Response.ok(res.result().body()).type(MediaType.TEXT_PLAIN).build());
             } else {
-                JsonObject oerror = new JsonObject().put("id", 1).put("error", res.cause().getMessage());
+                JsonObject oerror = new JsonObject().put("id", count).put("error", res.cause().getMessage());
                 logger.error(oerror);
                 //response.resume(Response.status(500).build());
             }
@@ -52,7 +53,7 @@ public class ResteasyService {
             //response.resume(httpRes);
         });
 
-        response.resume(Response.accepted().header("Location", "/hello/result/" + 1).build());
+        response.resume(Response.accepted().header("Location", "/hello/result/" + count).build());
     }
 
     @GET
