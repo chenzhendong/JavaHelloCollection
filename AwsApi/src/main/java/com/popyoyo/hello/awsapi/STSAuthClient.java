@@ -45,9 +45,24 @@ import java.util.List;
 
 public class STSAuthClient {
 
+    private static final String PROD_ARN = "arn:aws:iam::259701781532:role/US-HIS_AWS259701781532_Developer";
+    private static final String DI_ARN = "arn:aws:iam::367043359551:role/US-HIS_AWS367043359551_PromotionEngineer";
+    private static final String QA_ARN = "arn:aws:iam::737324801437:role/US-HIS_AWS737324801437_PromotionEngineer";
+    private static final String DEV_ARN = "arn:aws:iam::294412549994:role/US-HIS_AWS294412549994-Developer";
+
+    private boolean isProd = false;
+
     public static void main(String[] args) throws Exception {
-        STSAuthClient client = new STSAuthClient();
+        STSAuthClient client = new STSAuthClient(args);
         client.run();
+    }
+
+    public STSAuthClient(String[] args) {
+        for(String arg  : args) {
+            if("--prod".equals(arg)) {
+                isProd = true;
+            }
+        }
     }
 
     private String getAssertion(String content) throws Exception {
@@ -95,7 +110,7 @@ public class STSAuthClient {
             UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paras);
             return entity;
         } else {
-            System.out.println("Cannot find login form, something wrong on login page.  Try use your browser visit https://fstest.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices see if it down.");
+            System.out.println("Cannot find login form, something wrong on login page.  Try use your browser visit https://fs.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices see if it down.");
             System.exit(-1);
             return null;
         }
@@ -133,7 +148,7 @@ public class STSAuthClient {
                 .build();
 
         try {
-            HttpGet httpget = new HttpGet("https://fstest.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices");
+            HttpGet httpget = new HttpGet("https://fs.3m.com/idp/startSSO.ping?PartnerSpId=urn:amazon:webservices");
             CloseableHttpResponse res1 = httpclient.execute(httpget);
 
             HttpEntity entity = res1.getEntity();
@@ -142,13 +157,13 @@ public class STSAuthClient {
             EntityUtils.consume(entity);
 
             HttpUriRequest req2 = RequestBuilder.post()
-                    .setUri(new URI("https://enltest.3m.com/enl/login_servlet"))
+                    .setUri(new URI("https://enl.3m.com/enl/login_servlet"))
                     .setEntity(postData)
                     .build();
             CloseableHttpResponse res2 = httpclient.execute(req2);
 
             HttpUriRequest req3 = RequestBuilder.post()
-                    .setUri(new URI("https://fstest.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
+                    .setUri(new URI("https://fs.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
                     .setEntity(postData)
                     .build();
 
@@ -165,7 +180,7 @@ public class STSAuthClient {
                 System.out.print("Enter text passcode:");
                 String text = new BufferedReader(new InputStreamReader(System.in)).readLine();
                 req3 = RequestBuilder.post()
-                        .setUri(new URI("https://fstest.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
+                        .setUri(new URI("https://fs.3m.com/idp/resumeSAML20/idp/startSSO.ping"))
                         .setEntity(createPostMfaCode(res3String, text))
                         .build();
                 res3 = httpclient.execute(req3);
@@ -248,6 +263,12 @@ public class STSAuthClient {
         writer.write("aws_access_key_id = " + accessId + "\n");
         writer.write("aws_secret_access_key = " + accessKey + "\n");
         writer.write("aws_session_token = " + sessionToken + "\n");
+        if(isProd) {
+            writer.write("[prod]\n");
+            writer.write("source_profile = default\n");
+            writer.write("role_arn = " + PROD_ARN+"\n");
+            writer.write("region = us-east-1\n");
+        }
         writer.close();
     }
 }
